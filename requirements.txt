@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pyotp
+qrcode[pil]
+webauthn
+bcrypt

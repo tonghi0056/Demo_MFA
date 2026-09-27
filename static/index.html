@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MFA / 2FA Security System Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/@github/webauthn-json@2.1.1/dist/browser-global/webauthn-json.browser-global.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: radial-gradient(circle at 50% 20%, #1e293b, #090d16);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        padding: 30px;
+      }
+
+      /* Tăng tỷ lệ bao phủ màn hình lên 90% và max 1440px */
+      .container {
+        width: 90vw;
+        max-width: 1440px;
+        display: grid;
+        grid-template-columns: 1.15fr 1fr;
+        gap: 60px;
+        align-items: center;
+      }
+
+      /* CỘT TRÁI - Phóng to tiêu đề và nội dung */
+      .left-panel {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding-right: 20px;
+      }
+
+      .left-panel h1 {
+        font-size: 52px;
+        margin-bottom: 20px;
+        font-weight: 800;
+        letter-spacing: -1px;
+        line-height: 1.2;
+      }
+
+      .left-panel p {
+        color: #94a3b8;
+        line-height: 1.8;
+        font-size: 19px;
+      }
+
+      .left-panel ul {
+        margin-left: 28px;
+        color: #cbd5e1;
+        line-height: 2.2;
+        font-size: 18px;
+      }
+
+      /* KHUNG CARD CHÍNH - Tăng padding & shadow */
+      .card {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 28px;
+        padding: 48px 44px;
+        box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.65);
+        position: relative;
+      }
+
+      .card h3 {
+        margin-bottom: 24px;
+        font-size: 26px;
+        font-weight: 700;
+      }
+
+      /* INPUT & SELECT CỠ LỚN */
+      input[type="text"],
+      input[type="password"] {
+        width: 100%;
+        padding: 18px 20px;
+        margin: 12px 0;
+        border: 1.5px solid transparent;
+        border-radius: 14px;
+        background: #0f172a;
+        color: white;
+        font-size: 17px;
+        transition: all 0.25s ease;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+      }
+
+      .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin: 18px 0;
+        font-size: 16px;
+        color: #94a3b8;
+      }
+
+      .checkbox-container input {
+        width: 22px;
+        height: 22px;
+        accent-color: #2563eb;
+        cursor: pointer;
+      }
+
+      /* BUTTON TO, RÕ */
+      button {
+        width: 100%;
+        padding: 18px;
+        margin-top: 14px;
+        border: none;
+        border-radius: 14px;
+        background: #2563eb;
+        color: white;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 17px;
+        transition: all 0.25s ease;
+      }
+
+      button:hover {
+        background: #1d4ed8;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 20px -4px rgba(37, 99, 235, 0.4);
+      }
+
+      .btn-secondary {
+        background: #334155;
+      }
+
+      .btn-secondary:hover {
+        background: #475569;
+        box-shadow: none;
+      }
+
+      .btn-danger {
+        background: #b91c1c;
+      }
+
+      .btn-danger:hover {
+        background: #991b1b;
+      }
+
+      .status {
+        margin-top: 20px;
+        padding: 16px;
+        border-radius: 14px;
+        font-weight: 600;
+        font-size: 15px;
+        line-height: 1.5;
+      }
+
+      .ok {
+        background: #14532d;
+      }
+      .err {
+        background: #7f1d1d;
+      }
+      .warn {
+        background: #854d0e;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* =========================================================
+   STEPPER VỪA VẶN TUYỆT ĐỐI - KHÔNG BAO GIỜ BỊ LÒI ĐƯỜNG KẺ
+   ========================================================= */
+      .progress {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 35px;
+        position: relative;
+      }
+
+      .step {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        z-index: 2;
+        background: transparent;
+      }
+
+      /* Đường nối kẻ giữa các bước bằng relative layout chuẩn */
+      .progress::before {
+        content: "";
+        position: absolute;
+        top: 22px;
+        left: 10%;
+        right: 10%;
+        height: 3px;
+        background: #334155;
+        z-index: 1;
+      }
+
+      .circle {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #0f172a;
+        border: 3px solid #334155;
+        margin: auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 700;
+        transition: all 0.3s;
+      }
+
+      .active .circle {
+        background: #2563eb;
+        border-color: #60a5fa;
+        box-shadow: 0 0 20px rgba(37, 99, 235, 0.7);
+      }
+
+      .step p {
+        margin-top: 10px;
+        font-size: 15px;
+        color: #94a3b8;
+        font-weight: 600;
+      }
+
+      .active p {
+        color: white;
+      }
+
+      /* DASHBOARD MINI MỞ RỘNG */
+      .dashboard {
+        background: #0f172a;
+        border-radius: 16px;
+        padding: 28px;
+        border: 1px solid #334155;
+        margin-top: 20px;
+        font-size: 16px;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: bold;
+        background: #15803d;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- CỘT TRÁI: ĐĂNG KÝ VÀ MÔ TẢ ĐỀ TÀI -->
+      <div class="left-panel">
+        <h1>🔐 MFA & 2FA Simulator</h1>
+        <p>Minh họa cơ chế xác thực đa yếu tố động theo mức độ rủi ro:</p>
+        <br />
+        <ul>
+          <li>
+            <b>Đăng ký:</b> Bắt buộc cấu hình Passkey (FIDO2) ngay lập tức.
+          </li>
+          <li>
+            <b>Đăng nhập chuẩn (2FA):</b> Chọn linh hoạt giữa OTP hoặc Passkey.
+          </li>
+          <li>
+            <b>Giới hạn:</b> Tối đa 5 lần sai mật khẩu (quá 5 lần &rarr; Khóa).
+          </li>
+          <li>
+            <b>Cưỡng bức MFA:</b> Sai 4 lần và đúng ở lần 5 &rarr; Ép buộc cả
+            OTP và Passkey!
+          </li>
+        </ul>
+
+        <!-- KHU VỰC ĐĂNG KÝ MỚI -->
+        <div
+          style="
+            margin-top: 25px;
+            border-top: 1px solid #334155;
+            padding-top: 15px;
+          "
+        >
+          <h4>📝 Đăng ký tài khoản mới</h4>
+          <input type="text" id="reg-user" placeholder="Tên đăng nhập mới" />
+          <input type="password" id="reg-pass" placeholder="Mật khẩu mới" />
+
+          <div class="checkbox-container">
+            <input type="checkbox" id="reg-otp-opt" />
+            <label for="reg-otp-opt"
+              >Bật OTP dự phòng (Google Authenticator)</label
+            >
+          </div>
+
+          <button onclick="handleStartRegister()">
+            1. Tiếp tục & Đăng ký Passkey bắt buộc
+          </button>
+          <div id="reg-status"></div>
+        </div>
+      </div>
+
+      <!-- CỘT PHẢI: FORM ĐĂNG NHẬP & DASHBOARD -->
+      <div class="card">
+        <!-- KHỐI ĐĂNG NHẬP -->
+        <div id="login-flow">
+          <div class="progress">
+            <div class="step active" id="step1-indicator">
+              <div class="circle"></div>
+              <p>Password</p>
+            </div>
+            <div class="step" id="step2-indicator">
+              <div class="circle"></div>
+              <p id="label-step2">Yếu tố 2</p>
+            </div>
+            <div class="step hidden" id="step3-indicator">
+              <div class="circle"></div>
+              <p>MFA Passkey</p>
+            </div>
+          </div>
+
+          <h3 id="login-title">Đăng nhập tài khoản</h3>
+
+          <!-- BƯỚC 1: PASSWORD -->
+          <div id="box-login-step1">
+            <input type="text" id="login-user" placeholder="Tên đăng nhập" />
+            <input type="password" id="login-pass" placeholder="Mật khẩu" />
+            <button onclick="handleLoginStep1()">Xác nhận Mật khẩu</button>
+          </div>
+
+          <!-- BƯỚC 2A: LỰA CHỌN PHƯƠNG THỨC XÁC THỰC (NẾU CÓ BẬT OTP DỰ PHÒNG) -->
+          <div id="box-choose-factor" class="hidden">
+            <p style="font-size: 14px; margin-bottom: 12px; color: #94a3b8">
+              Chọn phương thức xác thực yếu tố 2:
+            </p>
+            <button onclick="triggerPasskeyFlow()">
+              👆 Xác thực nhanh bằng Passkey
+            </button>
+            <button class="btn-secondary" onclick="triggerOtpFlow()">
+              📱 Xác thực bằng OTP (Google Authenticator)
+            </button>
+          </div>
+
+          <!-- BƯỚC 2B: KHỐI XÁC THỰC OTP -->
+          <div id="box-otp-auth" class="hidden">
+            <div
+              id="qr-container"
+              style="
+                text-align: center;
+                background: #0f172a;
+                padding: 12px;
+                border-radius: 10px;
+                margin-bottom: 10px;
+              "
+            >
+              <p style="font-size: 12px; color: #cbd5e1">
+                Mở app Google Authenticator quét mã QR dưới (Chỉ hiện 1 lần):
+              </p>
+              <img
+                id="qr-image"
+                width="140"
+                style="margin: 8px 0; border-radius: 6px"
+              /><br />
+              <small style="word-break: break-all; color: #94a3b8"
+                >Secret: <span id="totp-secret"></span
+              ></small>
+            </div>
+            <input
+              type="text"
+              id="otp-input"
+              placeholder="Nhập mã 6 chữ số từ app"
+              maxlength="6"
+            />
+            <button onclick="handleVerifyOtp()">Xác nhận mã OTP</button>
+          </div>
+
+          <!-- BƯỚC 2C: KHỐI XÁC THỰC PASSKEY -->
+          <div id="box-passkey-auth" class="hidden">
+            <p style="font-size: 14px; margin-bottom: 12px">
+              Chạm cảm biến vân tay/FaceID hoặc quét mã bằng điện thoại:
+            </p>
+            <button onclick="handleVerifyPasskey()">
+              👆 Bắt đầu quét Passkey
+            </button>
+          </div>
+
+          <div id="login-status"></div>
+        </div>
+
+        <!-- KHỐI MINI DASHBOARD (HIỆN KHI ĐĂNG NHẬP THÀNH CÔNG) -->
+        <div id="dashboard-flow" class="hidden">
+          <h3>Bảng điều khiển người dùng</h3>
+          <div class="badge" id="dash-badge">2FA Tiêu chuẩn</div>
+
+          <div class="dashboard">
+            <p>
+              Xin chào, <b id="dash-username" style="color: #60a5fa">admin</b>!
+            </p>
+            <p style="font-size: 13px; color: #94a3b8; margin-top: 5px">
+              Phiên đăng nhập an toàn đã được kích hoạt thành công.
+            </p>
+
+            <div style="margin-top: 15px; font-size: 13px">
+              <p>Trạng thái bảo mật phiên:</p>
+              <p
+                id="dash-factors"
+                style="color: #4ade80; margin-top: 6px; line-height: 1.8"
+              ></p>
+            </div>
+          </div>
+
+          <button
+            class="btn-danger"
+            onclick="handleLogout()"
+            style="margin-top: 20px"
+          >
+            Đăng xuất
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentAuthUser = "";
+      let isHighRiskMode = false;
+      let hasOtpEnabled = false;
+
+      const log = (elId, msg, type = "ok") => {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        el.className = `status ${type}`;
+        el.innerText = msg;
+      };
+
+      // ==========================================
+      // XỬ LÝ ĐĂNG KÝ
+      // ==========================================
+      async function handleStartRegister() {
+        const username = document.getElementById("reg-user").value.trim();
+        const password = document.getElementById("reg-pass").value;
+        const enableOtp = document.getElementById("reg-otp-opt").checked;
+
+        if (!username || !password)
+          return alert("Vui lòng nhập tên đăng nhập và mật khẩu");
+
+        try {
+          log("reg-status", "Đang kiểm tra tài khoản...");
+          const checkRes = await fetch("/api/register/check", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+          });
+          const checkData = await checkRes.json();
+          if (!checkRes.ok) throw new Error(checkData.detail);
+
+          log("reg-status", "👉 Yêu cầu đăng ký Passkey trên thiết bị...");
+
+          const optRes = await fetch(
+            `/api/register/passkey-options?username=${encodeURIComponent(username)}`,
+          );
+          const options = await optRes.json();
+          if (!optRes.ok) throw new Error(options.detail);
+
+          // WebAuthn tạo Passkey trực tiếp
+          const credential = await webauthnJSON.create({ publicKey: options });
+
+          const finalRes = await fetch("/api/register/finalize", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username,
+              enable_otp: enableOtp,
+              credential,
+            }),
+          });
+          const finalData = await finalRes.json();
+          if (!finalRes.ok) throw new Error(finalData.detail);
+
+          log("reg-status", "✅ " + finalData.message);
+          document.getElementById("login-user").value = username;
+        } catch (err) {
+          log("reg-status", "❌ " + err.message, "err");
+        }
+      }
+
+      // ==========================================
+      // XỬ LÝ ĐĂNG NHẬP BƯỚC 1: PASSWORD & RATE LIMIT
+      // ==========================================
+      async function handleLoginStep1() {
+        currentAuthUser = document.getElementById("login-user").value.trim();
+        const pass = document.getElementById("login-pass").value;
+
+        try {
+          const res = await fetch("/api/login/step1-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: currentAuthUser, password: pass }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail);
+
+          isHighRiskMode = data.is_high_risk;
+          hasOtpEnabled = data.otp_enabled;
+
+          document.getElementById("box-login-step1").classList.add("hidden");
+          document.getElementById("step2-indicator").classList.add("active");
+
+          if (isHighRiskMode) {
+            document
+              .getElementById("step3-indicator")
+              .classList.remove("hidden");
+            document
+              .getElementById("step2-indicator")
+              .style.setProperty("--line-display", "block");
+            // CẢNH BÁO NGUY HIỂM: Sai 4 lần -> ÉP BUỘC ĐI QUA CẢ OTP VÀ PASSKEY
+            log(
+              "login-status",
+              "⚠️ PHÁT HIỆN BẤT THƯỜNG: Bạn đã thử sai 4 lần. Hệ thống yêu cầu xác thực đầy đủ cả OTP và Passkey (MFA)!",
+              "warn",
+            );
+            document
+              .getElementById("step3-indicator")
+              .classList.remove("hidden");
+            document.getElementById("label-step2").innerText = "OTP (Bắt buộc)";
+
+            // Mở luôn flow OTP đầu tiên
+            triggerOtpFlow();
+          } else {
+            // Luồng bình thường
+            log("login-status", "✅ " + data.message);
+            if (hasOtpEnabled) {
+              // Cho phép người dùng chọn giữa OTP hoặc Passkey
+              document
+                .getElementById("box-choose-factor")
+                .classList.remove("hidden");
+            } else {
+              // Không bật OTP dự phòng -> Next thẳng qua Passkey
+              triggerPasskeyFlow();
+            }
+          }
+        } catch (err) {
+          log("login-status", "❌ " + err.message, "err");
+        }
+      }
+
+      // ==========================================
+      // XỬ LÝ CHỌN PHƯƠNG THỨC XÁC THỰC
+      // ==========================================
+      async function triggerOtpFlow() {
+        document.getElementById("box-choose-factor").classList.add("hidden");
+        document.getElementById("box-otp-auth").classList.remove("hidden");
+        document.getElementById("label-step2").innerText = "OTP";
+
+        try {
+          const res = await fetch(
+            `/api/login/get-otp-qr?username=${encodeURIComponent(currentAuthUser)}`,
+          );
+          const data = await res.json();
+          if (!res.ok)
+            throw new Error(data.detail || "Không thể khởi tạo mã OTP");
+
+          document.getElementById("qr-container").style.display = "block";
+          document.getElementById("qr-image").src = data.qr_code_base64;
+          document.getElementById("totp-secret").innerText = data.secret;
+        } catch (err) {
+          log("login-status", "❌ " + err.message, "err");
+        }
+      }
+
+      function triggerPasskeyFlow() {
+        document.getElementById("box-choose-factor").classList.add("hidden");
+        document.getElementById("box-passkey-auth").classList.remove("hidden");
+        document.getElementById("label-step2").innerText = "Passkey";
+      }
+
+      // ==========================================
+      // VERIFY OTP
+      // ==========================================
+      async function handleVerifyOtp() {
+        const otp = document.getElementById("otp-input").value.trim();
+
+        try {
+          const res = await fetch("/api/login/verify-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: currentAuthUser, otp }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail);
+
+          // Đã verify OTP thành công -> Ẩn ngay mã QR đi
+          document.getElementById("box-otp-auth").classList.add("hidden");
+
+          if (isHighRiskMode) {
+            // Nếu là kịch bản High-Risk, tiếp tục ép sang bước 3 (Passkey)
+            log(
+              "login-status",
+              "✅ OTP chính xác! Tiếp tục hoàn tất lớp xác thực cuối (Passkey).",
+              "warn",
+            );
+            document.getElementById("step3-indicator").classList.add("active");
+            document
+              .getElementById("box-passkey-auth")
+              .classList.remove("hidden");
+          } else {
+            // Đăng nhập thành công 2FA qua OTP
+            showDashboard("2FA Tiêu chuẩn (Password + OTP)", [
+              "Password (Knowledge)",
+              "TOTP Authenticator (Possession)",
+            ]);
+          }
+        } catch (err) {
+          log("login-status", "❌ " + err.message, "err");
+        }
+      }
+
+      // ==========================================
+      // VERIFY PASSKEY
+      // ==========================================
+      async function handleVerifyPasskey() {
+        try {
+          log("login-status", "Đang yêu cầu chữ ký Passkey từ thiết bị...");
+          const res = await fetch(
+            `/api/login/passkey-options?username=${encodeURIComponent(currentAuthUser)}`,
+          );
+          const options = await res.json();
+          if (!res.ok) throw new Error(options.detail);
+
+          // WebAuthn đọc Passkey trực tiếp
+          const credential = await webauthnJSON.get({ publicKey: options });
+
+          const verifyRes = await fetch("/api/login/verify-passkey", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: currentAuthUser, credential }),
+          });
+          const result = await verifyRes.json();
+          if (!verifyRes.ok) throw new Error(result.detail);
+
+          document.getElementById("box-passkey-auth").classList.add("hidden");
+
+          if (isHighRiskMode) {
+            showDashboard(
+              "MFA Tối đa (Cưỡng bức do phát hiện rủi ro)",
+              [
+                "Password (Knowledge)",
+                "TOTP Authenticator (Possession)",
+                "Passkey Sinh trắc học (Inherence)",
+              ],
+              true,
+            );
+          } else {
+            showDashboard("2FA Không mật khẩu nâng cao (Password + Passkey)", [
+              "Password (Knowledge)",
+              "Passkey Sinh trắc học (Inherence)",
+            ]);
+          }
+        } catch (err) {
+          log("login-status", "❌ " + err.message, "err");
+        }
+      }
+
+      // ==========================================
+      // HIỂN THỊ DASHBOARD & LOGOUT
+      // ==========================================
+      function showDashboard(badgeText, factorList, isHighRisk = false) {
+        document.getElementById("login-flow").classList.add("hidden");
+        document.getElementById("dashboard-flow").classList.remove("hidden");
+
+        document.getElementById("dash-username").innerText = currentAuthUser;
+        const badge = document.getElementById("dash-badge");
+        badge.innerText = badgeText;
+        badge.style.background = isHighRisk ? "#d97706" : "#15803d";
+
+        document.getElementById("dash-factors").innerHTML = factorList
+          .map((f) => `✓ ${f}`)
+          .join("<br>");
+      }
+
+      function handleLogout() {
+        currentAuthUser = "";
+        isHighRiskMode = false;
+        hasOtpEnabled = false;
+
+        document.getElementById("dashboard-flow").classList.add("hidden");
+        document.getElementById("login-flow").classList.remove("hidden");
+
+        // Reset lại toàn bộ form
+        document.getElementById("box-login-step1").classList.remove("hidden");
+        document.getElementById("box-choose-factor").classList.add("hidden");
+        document.getElementById("box-otp-auth").classList.add("hidden");
+        document.getElementById("box-passkey-auth").classList.add("hidden");
+        document.getElementById("step3-indicator").classList.add("hidden");
+
+        document.getElementById("login-pass").value = "";
+        document.getElementById("otp-input").value = "";
+        document.getElementById("login-status").innerText = "";
+        document.getElementById("login-status").className = "";
+
+        document.getElementById("step2-indicator").classList.remove("active");
+        document.getElementById("step3-indicator").classList.remove("active");
+        document.getElementById("label-step2").innerText = "Yếu tố 2";
+      }
+    </script>
+  </body>
+</html>
