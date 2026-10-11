@@ -261,6 +261,40 @@
         background: #15803d;
         color: white;
       }
+
+      /* Container bọc ô password và nút xem mật khẩu */
+      .password-wrapper {
+        position: relative;
+        width: 100%;
+      }
+
+      .password-wrapper input {
+        padding-right: 55px !important;
+      }
+
+      .toggle-password {
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent !important;
+        border: none !important;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: auto !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: none !important;
+        transition: color 0.2s ease;
+      }
+
+      .toggle-password:hover {
+        color: #38bdf8 !important; /* Đổi màu xanh cyan sáng khi rê chuột vào */
+        transform: translateY(-50%) !important;
+      }
     </style>
   </head>
   <body>
@@ -296,7 +330,31 @@
         >
           <h4>📝 Đăng ký tài khoản mới</h4>
           <input type="text" id="reg-user" placeholder="Tên đăng nhập mới" />
-          <input type="password" id="reg-pass" placeholder="Mật khẩu mới" />
+          <div class="password-wrapper">
+            <input type="password" id="reg-pass" placeholder="Mật khẩu mới" />
+            <button
+              type="button"
+              class="toggle-password"
+              onclick="togglePasswordVisibility('reg-pass', this)"
+              title="Hiện/Ẩn mật khẩu"
+            >
+              <!-- Icon Mắt Mở -->
+              <svg
+                class="eye-icon"
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </button>
+          </div>
 
           <div class="checkbox-container">
             <input type="checkbox" id="reg-otp-opt" />
@@ -336,7 +394,31 @@
           <!-- BƯỚC 1: PASSWORD -->
           <div id="box-login-step1">
             <input type="text" id="login-user" placeholder="Tên đăng nhập" />
-            <input type="password" id="login-pass" placeholder="Mật khẩu" />
+            <div class="password-wrapper">
+              <input type="password" id="login-pass" placeholder="Mật khẩu" />
+              <button
+                type="button"
+                class="toggle-password"
+                onclick="togglePasswordVisibility('login-pass', this)"
+                title="Hiện/Ẩn mật khẩu"
+              >
+                <!-- Icon Mắt Mở -->
+                <svg
+                  class="eye-icon"
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
             <button onclick="handleLoginStep1()">Xác nhận Mật khẩu</button>
           </div>
 
@@ -712,6 +794,29 @@
         document.getElementById("step2-indicator").classList.remove("active");
         document.getElementById("step3-indicator").classList.remove("active");
         document.getElementById("label-step2").innerText = "Yếu tố 2";
+      }
+
+      function togglePasswordVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const eyeOpen = `
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>`;
+
+        const eyeClosed = `
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+      <line x1="1" y1="1" x2="23" y2="23"></line>
+    </svg>`;
+
+        if (input.type === "password") {
+          input.type = "text";
+          btn.innerHTML = eyeClosed; // Hiện mật khẩu -> Icon mắt có dấu gạch chéo
+        } else {
+          input.type = "password";
+          btn.innerHTML = eyeOpen; // Ẩn mật khẩu -> Icon mắt mở bình thường
+        }
       }
     </script>
   </body>
